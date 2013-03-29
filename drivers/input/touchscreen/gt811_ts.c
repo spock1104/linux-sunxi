@@ -683,7 +683,7 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
 	uint8_t config_info[] = {
 	0x06,0xA2,
 
-//must pick one of these configs, to match your hardware
+//must pick one of these configs to match your hardware or add your own
 /*
 	0x00,0x02,0x04,0x06,0x08,0x0A,0x0C,0x0E,0x10,0x12,0x60,0x00,0x50,0x00,0x40,0x00,
 	0x30,0x00,0x20,0x00,0x10,0x00,0x00,0x00,0x70,0x00,0x80,0x00,0x90,0x00,0xA0,0x00,
@@ -876,9 +876,6 @@ static void goodix_ts_work_func(struct work_struct *work)
 	unsigned int position = 0;	
 	int ret=-1;
 	int tmp = 0;
-//intermediate variables
-	uint16_t interx_1 = 0;
-	uint16_t interx_2 = 0;
 	
     struct goodix_ts_data *ts = container_of(work, struct goodix_ts_data, work);
 #ifdef DEBUG
@@ -987,42 +984,27 @@ COORDINATE_POLL:
                     position = 4+track_id[count]*5;
                 else
                     position = 30;
-                input_y = (uint16_t)(point_data[position]<<8)+(uint16_t)point_data[position+1];
-		//original calculation, found to not work correctly                
-		input_x = (uint16_t)(point_data[position+2]<<8)+(uint16_t)point_data[position+3];
-		
-		//correction of screen gap and scale		
-		//interx_1 = (uint16_t)point_data[position+2];
-		//interx_2 = (uint16_t)point_data[position+3];	
-		//if (interx_1 > 6)
-		//{
-		//	interx_1 = 15 - interx_1 + 7;
-		//	interx_2 = 256 - interx_2;
-		//}
-		//input_x=( (interx_1+1)*256)+(interx_2);
-		//end correction                
-		input_w = point_data[position+4];
+                    input_y = (uint16_t)(point_data[position]<<8)+(uint16_t)point_data[position+1];            
+		    input_x = (uint16_t)(point_data[position+2]<<8)+(uint16_t)point_data[position+3];
+      		    input_w = point_data[position+4];
             }
             else
             {
                 input_y = (uint16_t)(point_data[19]<<8)+(uint16_t)point_data[26];
                 input_x = (uint16_t)(point_data[27]<<8)+(uint16_t)point_data[28];
-		printk("27=%d, 28=%d \n", (uint16_t)(point_data[27]<<8), (uint16_t)point_data[28]);
                 input_w = point_data[29];
             }
 
             if(1 == revert_x_flag){
-			      		input_y = TOUCH_MAX_HEIGHT - input_y;
-			      }
-		        if(1 == revert_y_flag){
-			      		input_x = TOUCH_MAX_WIDTH -  input_x;
-			      }
-			      if(1 == exchange_x_y_flag) {
-			      		swap(input_y,  input_x);
-			    }
-		//if( 1768 < input_x ) {
-		//	input_x = 1768 + (TOUCH_MAX_HEIGHT - input_x); 
-		//}
+		input_y = TOUCH_MAX_HEIGHT - input_y;
+	    }
+	    if(1 == revert_y_flag){
+		input_x = TOUCH_MAX_WIDTH -  input_x;
+	    }
+	    if(1 == exchange_x_y_flag) {
+		swap(input_y,  input_x);
+	    }
+
             if((input_y > ts->abs_y_max)||(input_x > ts->abs_x_max))continue;
             //input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
             //input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
